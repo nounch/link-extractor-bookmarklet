@@ -1,16 +1,15 @@
 //#########################################################################
-// 
+//
 // Description:
 //
-//   1. Hide the whole document (assumes the document has a single root
-//      which should be the `document.documentElement').
-//   2. Create a `bookmarklet-container' div which wraps the whole
-//      bookmarklet.
-//   3. Append the `bookmarklet-container' to the document *after* the
-//      `head' element.
-//   4. Toggle the visibility of the `bookmarklet-container' with the
-//      bookmarklet button.
-// 
+//   1. Append a `Show bookmarklet' button to the original `body' element
+//   2. If the user clicks the `Show bookmarklet' button, remove the
+//      original `body' element; store it in memory for later use.
+//   3. Insert the `bmContainer' bookmarklet wrapper which is a custom
+//      `body' element and includes a `Show original page' button
+//   4. If the user clicks the `Show original page' button, remove the
+//      custom `bmContainer' and insert the original `body' element again.
+//
 //#########################################################################
 
 var Bookmarklet = (function() {
@@ -19,17 +18,20 @@ var Bookmarklet = (function() {
   };
 
   Bookmarklet.prototype = new (function() {
-    this.children = document.documentElement.childNodes;
-    this.childElements = [];
 
-    this.bmContainer = document.createElement('div');
+    this.pageBody = new Object();
+
+    // this.bmContainer = document.createElement('div');
+    this.bmContainer = new Object();
     this.bmContainer.id = 'bookmarklet-container';
+    this.bmShowButton = new Object();
+    this.bmHideButton = new Object();
 
     this.bmButton = document.createElement('a');
     this.bmButton.id = 'bookmarklet-button';
 
     this.isActive = false;
-    this.isAppended = false;
+    this.buttonIsInserted = false;
 
     /**
        Hides all `document.documentElement' children. If elements are
@@ -38,29 +40,23 @@ var Bookmarklet = (function() {
        for for later use of the `hide' function.
     */
     this.show = function() {
+      var self = this;
+
+      this._disaleStyleSheets();
+
+      // Store the current state of the `body' element of the page
+      this.pageBody = document.body.cloneNode(true);
+
       // Append the `bmContainer'
-      if (!this.isAppended) {
-        document.documentElement.insertBefore(
-          this.bmContainer, document.getElementById('head'));
-        this.isAppended = true;
-      }
+      this._removeBody();
+      document.documentElement.appendChild(this.bmContainer);
 
-      // Hide every child of `document.documentElement'
-      var child;
-      for (var i = 0; i < this.children.length; ++i) {
-        child = this.children[i];
-        child.style = new Object();
-        child.style.display = 'none';
+      // Insert the `bmButton' only once
+      if (!this.buttonIsInserted) {
+        this.bmContainer.insertBefore(this.bmHideButton,
+                                      this.bmContainer.childNodes[0]);
+        this.buttonIsInserted = true;
       }
-
-      this.bmContainer.style.display = 'inline';
-      this.bmButton.style.display = 'inline';
-      this._setButton('Show original page', {
-        'textAlign': 'center',
-        'width': '100%',
-        'backgroundColor': '#00FF00',
-        'top': '0',
-      });
     }
 
     /**
@@ -69,93 +65,103 @@ var Bookmarklet = (function() {
        restored, i.e. originally hidden elements will stay invisible.
     */
     this.hide = function() {
-      document.getElementById('bookmarklet-container').style.display =
-        'none';
-      for (var i = 0; i < this.childElements.length; ++i) {
-        // children[i].style.display = childElements[i]['display'];
-        this.children[i].style.display = 'inline';
-      }
+      var self = this;
 
-      this._setButton('Show bookmarklet', {
-        'textAlign': 'center',
-        'width': '100%',
-        'backgroundColor': '#FF0000',
-        'top': '0',
-      });
+      this._enableStyleSheets();
 
-      document.documentElement.insertBefore(this.bmButton,
-                                            document.body);
+      // Append the `pageBody'
+      this._removeBody();
+      document.documentElement.appendChild(this.pageBody);
+
+      // Add the event listener again when the original page is shown
+      document.getElementById('bookmarklet-show-button').onclick =
+        function() {
+          self.toggle();
+        }
     }
 
     /**
        Toggles the bookmarklet's functionality.
     */
     this.toggle = function() {
-      var self = this;
-
+      console.log('Click');  // DEBUG
       if (this.isActive) {
-        this.bmContainer.appendChild(this.bmButton);
         this.hide();
         this.isActive = false;
       } else {
-        document.documentElement.insertBefore(this.bmButton,
-                                              document.body);
         this.show();
         this.isActive = true;
       }
     }
 
-    this._collectVisibilityInfo = function() {
-      var child;
-      var childElement = new Object();
+    this._removeBody = function() {
+      // if (document.body.id = 'bookmarklet-container') {
+      //   this.bmContainer = document.body.cloneNode(true);
+      // } else {
+      //   this.pageBody = document.body.cloneNode(true);
+      // }
+      document.body.parentNode.removeChild(document.body);
+    }
 
-      for (var i = 0; i < this.children.length; ++i) {
-        child = this.children[i];
-        childElement['element'] = child.cloneNode(true);;
-
-        if (typeof child.style != 'undefined' &&
-            typeof child.style.display != 'undefined' &&
-            child.style.display != '') {
-          childElement['display'] = child.style.display;
-        } else {
-          childElement['display'] = 'inline';
-        }
-
-        this.childElements[i] = childElement;
+    this._enableStyleSheets = function() {
+      for(i = 0; i < document.styleSheets.length; ++i) {
+        document.styleSheets[i].disabled = false;
       }
     }
 
-    this._setButton = function(text, properties) {
-      this.bmButton.innerHTML = text;
+    this._disaleStyleSheets = function() {
+      for(i = 0; i < document.styleSheets.length; ++i) {
+        document.styleSheets[i].disabled = true;
+      }
+    }
+
+    this._makeButton = function(text, id, onclick, properties) {
+      var button = document.createElement('a');
+      button.id = id;
+      button.onclick = onclick;
+
+      button.innerHTML = text;
       var props = Object.keys(properties);
       for (var i = 0; i < props.length; ++i) {
         property = props[i];
-        this.bmButton.style[property] = properties[property];
+        button.style[property] = properties[property];
       }
+
+      return button;
     }
 
     this.init = function(callback) {
       var self = this;
+      this.bmContainer = document.createElement('body');
 
-      // Store the `display' CSS property of every child of
-      // `document.documentElement'
-
-      this._collectVisibilityInfo();
-
-      // Initial button setting
-      this.bmButton.onclick = function() {
-        self.toggle();
-      }
-      this._setButton('Show bookmarklet', {
-        'textAlign': 'center',
-        'width': '100%',
-        'backgroundColor': '#FF0000',
-        'top': '0',
-      });
+      this.bmShowButton = this._makeButton(
+        'Show bookmarklet', 'bookmarklet-show-button', function() {
+          self.toggle();
+        }, {
+          'textAlign': 'center',
+          'width': '100%',
+          'backgroundColor': '#FF0000',
+          'top': '0',
+          'zIndex': '99999999',
+          'position': 'absolute',
+        });
+      this.bmHideButton = this._makeButton(
+        'Show original page', 'bookmarklet-hide-button', function() {
+          self.toggle();
+        }, {
+          'textAlign': 'center',
+          'width': '100%',
+          'backgroundColor': '#00FF00',
+          'top': '0',
+          'zIndex': '99999999',
+          'position': 'absolute',
+        });
 
       // Show the bookmarklet button
-      document.documentElement.insertBefore(this.bmButton,
-                                            document.body);
+      document.body.insertBefore(this.bmShowButton,
+                                 document.body.childNodes[0]);
+
+      this.pageBody = document.body.cloneNode(true);
 
       // Call user-defined actions on `this.bmContainer'
       callback(this.bmContainer);
