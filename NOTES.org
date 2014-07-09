@@ -1,0 +1,161 @@
+* TODOs
+- Ensure that a basic <html><head></head><body></body></html>
+  structure is provided for every page.
+- Improve the temporary disabling of all stylesheets for the original
+  page.
+
+  Current approach:
+
+#+begin_src javascript
+for(i = 0; i < document.styleSheets.length; ++i) {
+  document.styleSheets[i].disabled = true;
+}
+#+end_src
+
+  Possible improvement:
+
+#+begin_src javascript
+var elements = document.getElementsByTagName('*');
+for(i = 0; i < elements.length; ++i) {
+  elements[i].style.cssText = '';
+}
+#+end_src
+- Possible support for video/audio streams:
+  1. Make the original `body' element a `div' and do not remove it
+     from the DOM so the stream can play on
+  2. Insert the `bmContainer' `body' element before this `div'
+  3. When the user clicks the `Show original page' button, remove the
+     `bmContainer'.
+  4. Convert the `div' to a `body' again.
+- Add a `Close' icon (`x') or an alternative placing icon to the
+  `bmShowButton'.
+- Support as many browsers as possible
+
+  CSS:
+
+  - =-webkit-=
+  - =-khtml-=
+  - =-moz-=
+  - =-ms-=
+  - =-o-=
+- Enable stylesheets exclusively
+
+  javascript - get document.styleSheets by name instead of index? -
+  Stack Overflow:
+
+http://stackoverflow.com/questions/1679577/get-document-stylesheets-by-name-instead-of-index
+
+#+begin_src javascript
+var styleSheet;
+for (var i = 0; i < document.styleSheets.length; ++i)
+  styleSheet = document.styleSheets[i];
+
+  if (styleSheet.indexOf('mystylesheet.js')) {
+    // ...
+  } else {
+    document.styleSheets[i].disabled = true;
+  }
+#+end_src
+- Reset everything `bookmarklet-widget'-related
+
+  This approach seems reasonable:
+
+http://stackoverflow.com/questions/4422116/css-shield-for-widget
+
+   Reset example:
+
+#+begin_src css
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, font, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	font-weight: inherit;
+	font-style: inherit;
+	font-size: 100%;
+	font-family: inherit;
+	vertical-align: baseline;
+}
+/* remember to define focus styles! */
+:focus {
+	outline: 0;
+}
+body {
+	line-height: 1;
+	color: black;
+	background: white;
+}
+ol, ul {
+	list-style: none;
+}
+/* tables still need 'cellspacing="0"' in the markup */
+table {
+	border-collapse: separate;
+	border-spacing: 0;
+}
+caption, th, td {
+	text-align: left;
+	font-weight: normal;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: "";
+}
+blockquote, q {
+	quotes: "" "";
+}
+#+end_src
+
+   Source:
+
+http://meyerweb.com/eric/thoughts/2007/05/01/reset-reloaded/
+
+   The cleanslate reset may be even more helpful:
+
+https://github.com/premasagar/cleanslate
+* Features
+- Group links
+  + By domain
+  + Same site/different sites
+  + HTTP/HTTPS
+  + FTP/mailto/etc.
+  + (Conditionally color-code links by group)
+  + Detect and mark douplicates ("Exlude dubplicates" option)
+- Convert data to exportable formats (JSON/XML):
+  + "table" elements
+  + "ul" elements
+  + "li" elements
+  + "h1", "h2", "h3", "h4", etc. elements
+  + Select (CSS Selectors/mark by clicking) custom elements; also:
+    specifically exclude /data/data types/elements
+  + Mini-API for exportable data
+  + Possible export mechanics: Data URIs
+
+  If possible, predict data types (numeric data, URIs, dates, images,
+  audio etc.).
+- Image gallery:
+  + Thumbnails/resized images
+  + Modal with keyboard shortcuts
+- Outlines: headings ("h1", "h2", "h3", "h4", etc.)
+- Keep data as editable as possible (e.g. manually edit exportable
+  data before exporting it)
+- Printing optimization/Convert to printable format
+
+  Consider this:
+  
+  http://timkadlec.com/2008/01/display-a-links-href-when-printing/
+
+  And this:
+
+  http://davidwalsh.name/optimize-your-links-for-print-using-css-show-url
+- Microcontent listing/summary
+  + Headlines
+  + Links/link texts
+  + Images
